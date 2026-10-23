@@ -1,0 +1,30 @@
+{
+  "name": "chroma",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dynamic ambient theme for YouTube \u2014 recolors the UI from the video you're watching.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/check-size.mjs",
+    "build:dev": "vite build --mode development --outDir dist-dev",
+    "zip": "npm run build && node scripts/zip.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "npm run build:dev && node scripts/e2e.mjs",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "2.7.1",
+    "@puppeteer/browsers": "^2.13.2",
+    "@types/chrome": "0.1.43",
+    "@types/node": "22.20.5",
+    "puppeteer-core": "^24.43.1",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.7"
+  }
+}

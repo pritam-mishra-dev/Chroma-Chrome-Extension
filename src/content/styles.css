@@ -1,0 +1,138 @@
+/*
+ * Chroma — injected styles.
+ *
+ * Every rule hangs off `html.chroma-on`, so removing one class reverts the
+ * page instantly. `chroma-sel-name` placeholders are YouTube selector groups filled in
+ * from selectors.ts at runtime (the single source of truth for selectors).
+ *
+ * Colors flow through two layers:
+ *   --chroma-*   our palette, set from JS, animated by registered @property
+ *   --chroma-mix 0→1 blend between YouTube's stock color and ours; it is what
+ *                fades the page back to stock on pages without a video.
+ */
+
+/* Registered so the browser interpolates them; unregistered custom
+   properties would jump straight to the new color. */
+@property --chroma-accent { syntax: '<color>'; inherits: true; initial-value: #3ea6ff; }
+@property --chroma-accent-dark { syntax: '<color>'; inherits: true; initial-value: #065fd4; }
+@property --chroma-accent-light { syntax: '<color>'; inherits: true; initial-value: #9fd3ff; }
+@property --chroma-muted { syntax: '<color>'; inherits: true; initial-value: #3f3f3f; }
+@property --chroma-glow { syntax: '<color>'; inherits: true; initial-value: transparent; }
+@property --chroma-on-accent { syntax: '<color>'; inherits: true; initial-value: #0f0f0f; }
+@property --chroma-bg-tint { syntax: '<color>'; inherits: true; initial-value: #3f3f3f; }
+@property --chroma-link { syntax: '<color>'; inherits: true; initial-value: #3ea6ff; }
+@property --chroma-mix { syntax: '<number>'; inherits: true; initial-value: 0; }
+
+/* Windows High Contrast / forced colors: the user's system palette wins, so
+   nothing below applies there (JS also stops sampling in that mode). */
+@media not (forced-colors: active) {
+  html.chroma-on {
+    --chroma-pct: calc(var(--chroma-mix) * 100%);
+    --chroma-glow-blur: 80px;
+    --chroma-glow-amb: 1;
+    --chroma-glow-k: calc(var(--chroma-mix) * var(--chroma-glow-strength, 0.6) * var(--chroma-glow-amb));
+    /* YouTube's stock colors, used as the "from" side of every fade. */
+    --chroma-page-bg: #ffffff;
+    --chroma-o-fill: #0f0f0f;
+    --chroma-o-on-fill: #ffffff;
+    --chroma-o-scroll: #606060;
+    transition:
+      --chroma-accent var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-accent-dark var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-accent-light var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-muted var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-glow var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-on-accent var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-bg-tint var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-link var(--chroma-dur, 1200ms) ease-in-out,
+      --chroma-mix var(--chroma-fade, 600ms) ease-in-out;
+  }
+  html.chroma-on[dark] {
+    --chroma-page-bg: #0f0f0f;
+    --chroma-o-fill: #f1f1f1;
+    --chroma-o-on-fill: #0f0f0f;
+    --chroma-o-scroll: #ababab;
+  }
+
+  /* Glow blur per performance mode: big blurred shadows are the costliest paint we add. */
+  html.chroma-on.chroma-perf-quality { --chroma-glow-blur: 120px; }
+  html.chroma-on.chroma-perf-battery { --chroma-glow-blur: 40px; }
+  /* YouTube's own Ambient mode already paints a glow; stay well under it. */
+  html.chroma-on.chroma-ambient { --chroma-glow-amb: 0.3; }
+
+  /* ---------------------------------------------------------------- Accents */
+  html.chroma-on.chroma-active.chroma-t-accents :is(chroma-sel-subscribe),
+  html.chroma-on.chroma-active.chroma-t-accents :is(chroma-sel-chipActive) {
+    background-color: color-mix(in oklch, var(--chroma-o-fill), var(--chroma-accent) var(--chroma-pct)) !important;
+    color: color-mix(in oklch, var(--chroma-o-on-fill), var(--chroma-on-accent) var(--chroma-pct)) !important;
+  }
+  /* currentColor here is YouTube's inherited link blue, so the fade still works. */
+  html.chroma-on.chroma-active.chroma-t-accents :is(chroma-sel-links) {
+    color: color-mix(in oklch, currentColor, var(--chroma-link) var(--chroma-pct)) !important;
+  }
+  html.chroma-on.chroma-active.chroma-t-accents :is(chroma-sel-toggleActive) {
+    color: color-mix(in oklch, currentColor, var(--chroma-link) var(--chroma-pct)) !important;
+  }
+
+  /* ----------------------------------------------------------- Progress bar */
+  html.chroma-on.chroma-active.chroma-t-progress :is(chroma-sel-swatch) {
+    background: color-mix(in oklch, #ff0033, var(--chroma-accent-light) var(--chroma-pct)) !important;
+  }
+  /* Declared after the swatch rule on purpose: the played bar carries both classes. */
+  html.chroma-on.chroma-active.chroma-t-progress :is(chroma-sel-progressPlayed) {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklch, #ff0033, var(--chroma-accent-dark) var(--chroma-pct)),
+      color-mix(in oklch, #ff0033, var(--chroma-accent) var(--chroma-pct)) 70%,
+      color-mix(in oklch, #ff2791, var(--chroma-accent-light) var(--chroma-pct))
+    ) !important;
+  }
+  html.chroma-on.chroma-active.chroma-t-progress :is(chroma-sel-volumeHandle),
+  html.chroma-on.chroma-active.chroma-t-progress :is(chroma-sel-volumeHandle)::before {
+    background: color-mix(in oklch, #ffffff, var(--chroma-accent-light) var(--chroma-pct)) !important;
+  }
+
+  /* ------------------------------------------------------------ Player glow */
+  /* Two layers: a tight bright halo plus a wide soft bloom. px values are CSS
+     px, so they scale with devicePixelRatio and look the same at 1x and 2x. */
+  html.chroma-on.chroma-active.chroma-t-glow:not(.chroma-fs) :is(chroma-sel-glowDefault),
+  html.chroma-on.chroma-active.chroma-t-glow:not(.chroma-fs) :is(chroma-sel-glowTheater) {
+    box-shadow:
+      0 0 calc(var(--chroma-glow-blur) * 0.3) calc(var(--chroma-glow-blur) * 0.02)
+        color-mix(in srgb, var(--chroma-glow) calc(var(--chroma-glow-k) * 60%), transparent),
+      0 calc(var(--chroma-glow-blur) * 0.1) var(--chroma-glow-blur) calc(var(--chroma-glow-blur) * 0.12)
+        color-mix(in srgb, var(--chroma-glow) calc(var(--chroma-glow-k) * 40%), transparent) !important;
+  }
+  /* -------------------------------------------------------------- Scrollbar */
+  /* Standard properties only. Chrome ignores ::-webkit-scrollbar on any
+     element that has scrollbar-color/width, which is exactly what we want:
+     YouTube's own webkit rules stand down, and macOS overlay scrollbars and
+     Windows classic scrollbars both render natively. */
+  html.chroma-on.chroma-active.chroma-t-scrollbar,
+  html.chroma-on.chroma-active.chroma-t-scrollbar :is(chroma-sel-scrollPanels) {
+    scrollbar-color: color-mix(in oklch, var(--chroma-o-scroll), var(--chroma-accent) var(--chroma-pct)) transparent !important;
+    scrollbar-width: thin !important;
+  }
+
+  /* ------------------------------------------------------- Background tint */
+  html.chroma-on.chroma-active.chroma-t-tint:not(.chroma-perf-battery),
+  html.chroma-on.chroma-active.chroma-t-tint:not(.chroma-perf-battery) :is(chroma-sel-tintSurfaces) {
+    background-color: color-mix(
+      in oklch,
+      var(--chroma-page-bg),
+      var(--chroma-bg-tint) calc(var(--chroma-mix) * 6%)
+    ) !important;
+  }
+
+  /* -------------------------------------------------------------- Selection */
+  html.chroma-on.chroma-active.chroma-t-selection ::selection {
+    background-color: color-mix(in srgb, var(--chroma-accent) calc(var(--chroma-mix) * 45%), transparent) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.chroma-on {
+    --chroma-dur: 0ms !important;
+    --chroma-fade: 0ms !important;
+  }
+}
